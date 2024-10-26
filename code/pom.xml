@@ -1,8 +1,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.googlecode.cqengine</groupId>
+    <groupId>com.hypebits.cqengine</groupId>
     <artifactId>cqengine</artifactId>
-    <version>3.6.1-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
     <name>CQEngine</name>
     <description>Collection Query Engine: NoSQL indexing and query engine for Java collections with ultra-low latency</description>
@@ -90,105 +90,105 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <!-- Deploy a "-javadoc.jar" along with build -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.10.3</version>
-                <configuration>
-                    <!--
-                        This is a workaround for javadoc bug in JDK11/12
-                        See: https://bugs.openjdk.java.net/browse/JDK-8212233
-                    -->
-                    <source>8</source>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>javadoc-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <!--
-                    Build a jar containing all dependencies, by copying classes from all dependency jars directly into
-                    the main jar.
+<!--            <plugin>-->
+<!--                &lt;!&ndash; Deploy a "-javadoc.jar" along with build &ndash;&gt;-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-javadoc-plugin</artifactId>-->
+<!--                <version>2.10.3</version>-->
+<!--                <configuration>-->
+<!--                    &lt;!&ndash;-->
+<!--                        This is a workaround for javadoc bug in JDK11/12-->
+<!--                        See: https://bugs.openjdk.java.net/browse/JDK-8212233-->
+<!--                    &ndash;&gt;-->
+<!--                    <source>8</source>-->
+<!--                </configuration>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>attach-javadocs</id>-->
+<!--                        <phase>verify</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>javadoc-no-fork</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
+<!--            <plugin>-->
+<!--                &lt;!&ndash;-->
+<!--                    Build a jar containing all dependencies, by copying classes from all dependency jars directly into-->
+<!--                    the main jar.-->
 
-                    The resulting jar can be used as a library in other applications (without requiring any transitive
-                    dependencies of its own).
+<!--                    The resulting jar can be used as a library in other applications (without requiring any transitive-->
+<!--                    dependencies of its own).-->
 
-                    If used as a library in another application, in case the other application also shares any of the
-                    same dependencies, to avoid duplicate class issues resulting from copying dependency classes into
-                    this jar, we relocate classes which are dependencies of this library into a new package within this
-                    jar: com.googlecode.cqengine.lib.*. We then update the bytecode in all classes in this jar to
-                    refer to dependency classes in their new package.
+<!--                    If used as a library in another application, in case the other application also shares any of the-->
+<!--                    same dependencies, to avoid duplicate class issues resulting from copying dependency classes into-->
+<!--                    this jar, we relocate classes which are dependencies of this library into a new package within this-->
+<!--                    jar: com.googlecode.cqengine.lib.*. We then update the bytecode in all classes in this jar to-->
+<!--                    refer to dependency classes in their new package.-->
 
-                    Also we configure some transformers to merge open source licences present in any of the jars.
-                 -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>2.4.3</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <shadedArtifactAttached>true</shadedArtifactAttached>
-                            <shadedClassifierName>all</shadedClassifierName>
-                            <relocations>
-                                <relocation>
-                                    <pattern>com.googlecode.concurrenttrees.</pattern>
-                                    <shadedPattern>com.googlecode.cqengine.lib.com.googlecode.concurrenttrees.</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.esotericsoftware.</pattern>
-                                    <shadedPattern>com.googlecode.cqengine.lib.com.esotericsoftware.</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>org.</pattern>
-                                    <shadedPattern>com.googlecode.cqengine.lib.org.</shadedPattern>
-                                    <excludes>
-                                        <!-- Don't relocate SQLite as it will be unable to load its native library... -->
-                                        <exclude>org.sqlite.**</exclude>
-                                    </excludes>
-                                </relocation>
-                                <relocation>
-                                    <pattern>de.</pattern>
-                                    <shadedPattern>com.googlecode.cqengine.lib.de.</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>javassist.</pattern>
-                                    <shadedPattern>com.googlecode.cqengine.lib.javassist.</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>com.google.</pattern>
-                                    <shadedPattern>com.googlecode.cqengine.lib.com.google.</shadedPattern>
-                                    <excludes>
-                                        <!-- Don't relocate CQEngine's own classes... -->
-                                        <exclude>com.googlecode.cqengine.**</exclude>
-                                    </excludes>
-                                </relocation>
-                                <relocation>
-                                    <pattern>net.jodah.</pattern>
-                                    <shadedPattern>com.googlecode.cqengine.lib.net.jodah.</shadedPattern>
-                                </relocation>
-                            </relocations>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
-                                    <addHeader>false</addHeader>
-                                </transformer>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                </transformer>
-                            </transformers>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
+<!--                    Also we configure some transformers to merge open source licences present in any of the jars.-->
+<!--                 &ndash;&gt;-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-shade-plugin</artifactId>-->
+<!--                <version>2.4.3</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <phase>package</phase>-->
+<!--                        <goals>-->
+<!--                            <goal>shade</goal>-->
+<!--                        </goals>-->
+<!--                        <configuration>-->
+<!--                            <shadedArtifactAttached>true</shadedArtifactAttached>-->
+<!--                            <shadedClassifierName>all</shadedClassifierName>-->
+<!--                            <relocations>-->
+<!--                                <relocation>-->
+<!--                                    <pattern>com.googlecode.concurrenttrees.</pattern>-->
+<!--                                    <shadedPattern>com.googlecode.cqengine.lib.com.googlecode.concurrenttrees.</shadedPattern>-->
+<!--                                </relocation>-->
+<!--                                <relocation>-->
+<!--                                    <pattern>com.esotericsoftware.</pattern>-->
+<!--                                    <shadedPattern>com.googlecode.cqengine.lib.com.esotericsoftware.</shadedPattern>-->
+<!--                                </relocation>-->
+<!--                                <relocation>-->
+<!--                                    <pattern>org.</pattern>-->
+<!--                                    <shadedPattern>com.googlecode.cqengine.lib.org.</shadedPattern>-->
+<!--                                    <excludes>-->
+<!--                                        &lt;!&ndash; Don't relocate SQLite as it will be unable to load its native library... &ndash;&gt;-->
+<!--                                        <exclude>org.sqlite.**</exclude>-->
+<!--                                    </excludes>-->
+<!--                                </relocation>-->
+<!--                                <relocation>-->
+<!--                                    <pattern>de.</pattern>-->
+<!--                                    <shadedPattern>com.googlecode.cqengine.lib.de.</shadedPattern>-->
+<!--                                </relocation>-->
+<!--                                <relocation>-->
+<!--                                    <pattern>javassist.</pattern>-->
+<!--                                    <shadedPattern>com.googlecode.cqengine.lib.javassist.</shadedPattern>-->
+<!--                                </relocation>-->
+<!--                                <relocation>-->
+<!--                                    <pattern>com.google.</pattern>-->
+<!--                                    <shadedPattern>com.googlecode.cqengine.lib.com.google.</shadedPattern>-->
+<!--                                    <excludes>-->
+<!--                                        &lt;!&ndash; Don't relocate CQEngine's own classes... &ndash;&gt;-->
+<!--                                        <exclude>com.googlecode.cqengine.**</exclude>-->
+<!--                                    </excludes>-->
+<!--                                </relocation>-->
+<!--                                <relocation>-->
+<!--                                    <pattern>net.jodah.</pattern>-->
+<!--                                    <shadedPattern>com.googlecode.cqengine.lib.net.jodah.</shadedPattern>-->
+<!--                                </relocation>-->
+<!--                            </relocations>-->
+<!--                            <transformers>-->
+<!--                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">-->
+<!--                                    <addHeader>false</addHeader>-->
+<!--                                </transformer>-->
+<!--                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">-->
+<!--                                </transformer>-->
+<!--                            </transformers>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
 
             <plugin>
                 <groupId>org.jacoco</groupId>

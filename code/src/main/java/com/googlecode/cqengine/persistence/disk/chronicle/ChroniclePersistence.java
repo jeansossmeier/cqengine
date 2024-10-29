@@ -74,7 +74,7 @@ public class ChroniclePersistence<O, A extends Comparable<A>> implements ObjectS
                 .averageValueSize(objectMaxSize)
                 .entries(maxEntries); // Adjust the expected number of entries as needed
 
-        if (!Number.class.isInstance(indexClass)) {
+        if (!Number.class.isAssignableFrom(indexClass)) {
             mapBuilder.averageKeySize(indexMaxSize);
         }
 

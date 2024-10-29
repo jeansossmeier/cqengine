@@ -6,10 +6,10 @@ import com.googlecode.cqengine.index.support.CloseableIterator;
 import com.googlecode.cqengine.persistence.Persistence;
 import com.googlecode.cqengine.persistence.support.ObjectStore;
 import com.googlecode.cqengine.query.option.QueryOptions;
-import io.protostuff.*;
-import io.protostuff.runtime.*;
 import net.openhft.chronicle.map.ChronicleMap;
 import net.openhft.chronicle.map.ChronicleMapBuilder;
+import org.apache.fury.Fury;
+import org.apache.fury.config.CompatibleMode;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,15 +19,13 @@ import java.util.Collection;
 public class ChroniclePersistence<O, A extends Comparable<A>> implements ObjectStore<O>, Persistence<O, A> {
 
     private final File dbFile;
-
     final SimpleAttribute<O, A> primaryKeyAttribute;
-
-    Schema<O> objectSchema;
-    Schema<A> indexSchema;
+    final Fury fury;
+    final Class<A> indexClass;
+    final Class<O> objectClass;
 
     int objectMaxSize;
     int indexMaxSize;
-
 
     private ChronicleMap<A, O> chronicleMap;
 
@@ -45,27 +43,41 @@ public class ChroniclePersistence<O, A extends Comparable<A>> implements ObjectS
      * @param maxEntries The maximum number of entries expected for this store
      * @throws IOException
      */
-    public ChroniclePersistence(SimpleAttribute<O, A> primaryKeyAttribute, File dbFile, Class<A> indexClass, Class<O> objectClass, int indexMaxSize, int objectMaxSize, long maxEntries) throws
-                                                                                                                                                                   IOException {
-        // Timestamps aren't correctly decoded without this delegate..
-        TimestampDelegate                       timestampDelegate = new TimestampDelegate();
-        io.protostuff.runtime.DefaultIdStrategy sessionIdStrategy = new DefaultIdStrategy();
-        sessionIdStrategy.registerDelegate(timestampDelegate);
+    public ChroniclePersistence(
+            SimpleAttribute<O, A> primaryKeyAttribute,
+            File dbFile,
+            Class<A> indexClass,
+            Class<O> objectClass,
+            int indexMaxSize,
+            int objectMaxSize,
+            long maxEntries
+    ) throws IOException {
 
+        this.indexClass = indexClass;
+        this.objectClass = objectClass;
         this.indexMaxSize  = indexMaxSize;
         this.objectMaxSize = objectMaxSize;
 
-        this.indexSchema  = RuntimeSchema.getSchema(indexClass, sessionIdStrategy);
-        this.objectSchema = RuntimeSchema.getSchema(objectClass, sessionIdStrategy);
+        this.fury = Fury.builder()
+                .requireClassRegistration(true)
+                .withCompatibleMode(CompatibleMode.SCHEMA_CONSISTENT)
+                .build();
+
+        this.fury.register(indexClass);
+        this.fury.register(objectClass);
 
         this.primaryKeyAttribute = primaryKeyAttribute;
-        this.dbFile              = dbFile;
+        this.dbFile = dbFile;
 
         ChronicleMapBuilder<A, O> mapBuilder = ChronicleMapBuilder.of(indexClass, objectClass)
-                                                                  .name(dbFile.getName())
-                                                                  .averageKeySize(indexMaxSize)
-                                                                  .averageValueSize(objectMaxSize)
-                                                                  .entries(maxEntries); // Adjust the expected number of entries as needed
+                .name(dbFile.getName())
+                .averageValueSize(objectMaxSize)
+                .entries(maxEntries); // Adjust the expected number of entries as needed
+
+        if (!Number.class.isInstance(indexClass)) {
+            mapBuilder.averageKeySize(indexMaxSize);
+        }
+
         try {
             chronicleMap = mapBuilder.createPersistedTo(dbFile);
         } catch (Exception e) {
@@ -188,29 +200,22 @@ public class ChroniclePersistence<O, A extends Comparable<A>> implements ObjectS
 
 
     // Helper methods to convert keys and values to ByteBuffers
-
     private ByteBuffer serializeKey(A key) {
-        LinkedBuffer buffer = LinkedBuffer.allocate(indexMaxSize);
-        byte[]       bytes  = ProtostuffIOUtil.toByteArray(key, indexSchema, buffer);
+        byte[] bytes = fury.serializeJavaObject(key);
         return ByteBuffer.wrap(bytes);
     }
 
     private ByteBuffer serializeValue(O value) {
-        LinkedBuffer buffer = LinkedBuffer.allocate(objectMaxSize);
-        byte[]       bytes  = ProtostuffIOUtil.toByteArray(value, objectSchema, buffer);
+        byte[] bytes = fury.serializeJavaObject(value);
         return ByteBuffer.wrap(bytes);
     }
 
     private A deserializeKey(ByteBuffer keyBuffer) {
-        A key = indexSchema.newMessage();
-        ProtostuffIOUtil.mergeFrom(keyBuffer.array(), key, indexSchema);
-        return key;
+        return fury.deserializeJavaObject(keyBuffer.array(), indexClass);
     }
 
     private O deserializeValue(ByteBuffer valueBuffer) {
-        O value = objectSchema.newMessage();
-        ProtostuffIOUtil.mergeFrom(valueBuffer.array(), value, objectSchema);
-        return value;
+        return fury.deserializeJavaObject(valueBuffer.array(), objectClass);
     }
 
     public File getDbFile() {
